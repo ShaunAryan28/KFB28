@@ -1,0 +1,44 @@
+services:
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@localhost:5672/%2f
+      - FCM_CRED_PATH=/path/to/firebase_cred.json
+    volumes:
+      - .:/app
+    # command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./fcm-frontend # Assuming frontend Dockerfile is directly inside the 'frontend' folder
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    ports:
+      - "15672:15672" # Management UI
+      - "5672:5672" # AMQP
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
